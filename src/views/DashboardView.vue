@@ -1,55 +1,47 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 
+// Extraer 'locale' de useI18n para cambiar el idioma
+const { locale } = useI18n()
+
 const navigateTo = (route) => {
-router.push(route)
+  router.push(route)
+}
+
+// Función para cambiar el idioma
+const changeLanguage = (lang) => {
+  locale.value = lang  // Cambiar el idioma
 }
 </script>
 
 <template>
-<div class="dashboard-container">
-    <h2>Bienvenido al Dashboard</h2>
-    
-    <div class="buttons-container">
-    <button @click="navigateTo('/centros')">Centros</button>
-    <button @click="navigateTo('/citas')">Citas</button>
-    <button @click="navigateTo('/perfil')">Perfil</button>
+  <div class="background">
+    <div class="dashboard-container">
+      <!-- Header fijo con los botones y título -->
+      <header class="header">
+        <h2>{{ $t('dashboard.welcome') }}</h2>
+        <div class="language-buttons">
+          <button @click="changeLanguage('es')" class="language-button">
+            <img src="/img/banderaesp.png" alt="Español" />
+          </button>
+          <button @click="changeLanguage('en')" class="language-button">
+            <img src="/img/banderaUK.png" alt="English" />
+          </button>
+        </div>
+      </header>
+
+      <div class="buttons-container">
+        <button class="button" @click="navigateTo('/centros')">{{ $t('dashboard.centers') }}</button>
+        <button class="button" @click="navigateTo('/citas')">{{ $t('dashboard.dates') }}</button>
+        <button class="button" @click="navigateTo('/perfil')">{{ $t('dashboard.profile') }}</button>
+      </div>
     </div>
-</div>
+  </div>
 </template>
 
-<style scoped>
-.dashboard-container {
-max-width: 500px;
-margin: auto;
-padding: 20px;
-text-align: center;
-}
-
-h2 {
-font-size: 24px;
-margin-bottom: 20px;
-}
-
-.buttons-container {
-display: flex;
-justify-content: center;
-gap: 20px;
-}
-
-button {
-padding: 10px 20px;
-background-color: #42b883;
-color: white;
-border: none;
-border-radius: 4px;
-cursor: pointer;
-font-size: 16px;
-}
-
-button:hover {
-background-color: #36936d;
-}
+<style scoped lang="scss">
+@use "@/assets/dashboard.scss" as *;
 </style>

@@ -1,71 +1,74 @@
 <template>
+  <div class="background">
     <div class="centros-container">
-      <h2>Centros Disponibles</h2>
-      <ul>
-        <li v-for="center in centers" :key="center.name">
-          <strong>{{ center.name }}</strong> - {{ center.address }}
-        </li>
-      </ul>
+      <!-- Header fijo con los botones y título -->
+      <header class="header">
+        <button @click="goBack" class="back-button">←</button>
+        <h2>{{ $t('centros.title') }}</h2>
+        <div class="language-buttons">
+          <button @click="changeLanguage('es')" class="language-button">
+            <img src="/img/banderaesp.png" alt="Español" />
+          </button>
+          <button @click="changeLanguage('en')" class="language-button">
+            <img src="/img/banderaUK.png" alt="English" />
+          </button>
+        </div>
+      </header>
+
+      <!-- Lista de centros con tarjetas alineadas a la izquierda y a la derecha -->
+      <div class="centros-list">
+        <CardCentros v-for="(center, index) in centers" :key="center.name" :center="center" class="centro-card" />
+      </div>
+
+      <!-- Imagen debajo de la lista de centros (2x2) -->
+      <div class="image-container">
+        <img class="img" src="/img/centromedico.jpg" alt="Centro Médico" />
+        <img class="img" src="/img/images.jpg" alt="Centro Médico" />
+        <img class="img" src="/img/images1.jpg" alt="Centro Médico" />
+        <img class="img" src="/img/images2.jpg" alt="Centro Médico" />
+      </div>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from 'vue'
-  
-  const centers = ref([])
-  
-  const fetchCenters = async () => {
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('http://127.0.0.1:5000/centers', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      })
-  
-      if (!response.ok) {
-        throw new Error('Error al obtener los centros: ' + response.statusText)
-      }
-  
-      const result = await response.json()
-      centers.value = result
-    } catch (error) {
-      console.error(error)
-      alert('No se pudieron cargar los centros: ' + error.message)
-    }
+  </div>
+</template>
+
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { getCenters } from '@/service/apiService'
+import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import CardCentros from '@/components/CardCentros.vue'
+
+const centers = ref([])
+const { locale } = useI18n()
+const router = useRouter()
+
+// Fetch de centros
+const fetchCenters = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    centers.value = await getCenters(token)
+  } catch (error) {
+    console.error(error)
+    alert('No se pudieron cargar los centros: ' + error.message)
   }
-  
-  onMounted(() => {
-    fetchCenters()
-  })
-  </script>
-  
-  <style scoped>
-  .centros-container {
-    max-width: 600px;
-    margin: auto;
-    padding: 20px;
-  }
-  
-  ul {
-    list-style-type: none;
-    padding: 0;
-  }
-  
-  li {
-    background-color: #f9f9f9;
-    margin: 10px 0;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-  }
-  
-  strong {
-    display: block;
-    font-size: 1.1em;
-    margin-bottom: 5px;
-  }
-  </style>
-  
+}
+
+onMounted(() => {
+  fetchCenters()
+})
+
+// Cambiar el idioma
+const changeLanguage = (lang) => {
+  locale.value = lang
+}
+
+// Volver a la página anterior
+const goBack = () => {
+  router.back()
+}
+</script>
+
+<style scoped lang="scss">
+@use "@/assets/centros.scss" as *;
+</style>

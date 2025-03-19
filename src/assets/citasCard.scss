@@ -1,0 +1,55 @@
+.citas-card {
+    background-color: #f5f7f8;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+  }
+  
+  .citas-card__info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .citas-card__center {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .citas-card__date {
+    font-size: 1rem;
+    color: #666;
+    margin-top: 4px;
+  }
+  
+  .citas-card__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  
+  .citas-card__cancel-button {
+    background-color: #f44336;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.3s ease;
+  
+    &:hover {
+      background-color: #d32f2f;
+    }
+  }
+  

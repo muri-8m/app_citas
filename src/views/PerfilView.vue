@@ -1,154 +1,194 @@
+<template>
+  <div class="background">
+  <div class="perfil-container">
+    <h2>{{ $t('profile.title') }}</h2>
+      <!-- Header fijo con los botones y título -->
+  <header class="header">
+    <button @click="goBack" class="back-button">←</button>
+    <div class="language-buttons">
+      <button @click="changeLanguage('es')" class="language-button">
+        <img src="/img/banderaesp.png" alt="Español" />
+      </button>
+      <button @click="changeLanguage('en')" class="language-button">
+        <img src="/img/banderaUK.png" alt="English" />
+      </button>
+    </div>
+  </header>
+
+    <div v-if="perfil" class="form-actualizar">
+      <h3>{{ $t('profile.edit') }}</h3>
+
+      <label>
+        {{ $t('profile.name') }}:
+        <input v-model="perfilEditado.name" type="text" />
+      </label>
+
+      <label>
+        {{ $t('profile.lastname') }}:
+        <input v-model="perfilEditado.lastname" type="text" />
+      </label>
+
+      <label>
+        {{ $t('profile.email') }}:
+        <input v-model="perfilEditado.email" type="email" />
+      </label>
+
+      <label>
+        {{ $t('profile.phone') }}:
+        <input v-model="perfilEditado.phone" type="text" />
+      </label>
+
+      <label>
+        {{ $t('profile.birthdate') }}:
+        <input :value="perfil.date" type="text" disabled />
+      </label>
+
+      <label>
+        {{ $t('profile.username') }}:
+        <input v-model="perfilEditado.username" type="text" />
+      </label>
+
+      <button class="guardar" @click="confirmarYActualizar">{{ $t('profile.save') }}</button>
+    <!-- Botón de Cerrar Sesión -->
+    <button class="logout" @click="logout">{{ $t('profile.logout') }}</button>
+    </div>
+
+
+  </div>
+</div>
+</template>
+
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { getUserProfile, updateUserProfile } from '@/service/apiService'
+import { useRouter } from 'vue-router'
+import Swal from 'sweetalert2'
+import { useI18n } from 'vue-i18n'
 
-// Estado para mostrar los datos del perfil
+const { t, locale } = useI18n()
+const router = useRouter()
+
 const perfil = ref(null)
-
-// Datos editables para actualización
 const perfilEditado = ref({
   name: '',
   lastname: '',
   email: '',
   phone: '',
-  date: ''
+  username: ''
 })
 
-// Función para obtener el perfil del usuario logueado
+onMounted(async () => {
+  await verPerfil()
+})
+
+const changeLanguage = (lang) => {
+  locale.value = lang
+}
+
 const verPerfil = async () => {
   try {
-    const response = await fetch('http://127.0.0.1:5000/profile', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    })
-    const data = await response.json()
+    const token = localStorage.getItem('token')
+    const data = await getUserProfile(token)
     perfil.value = data
 
-    // También rellenamos los campos editables por si quiere modificar
-    perfilEditado.value.name = data.name
-    perfilEditado.value.lastname = data.lastname
-    perfilEditado.value.email = data.email
-    perfilEditado.value.phone = data.phone
-    perfilEditado.value.date = data.date
+    perfilEditado.value = {
+      name: data.name,
+      lastname: data.lastname,
+      email: data.email,
+      phone: data.phone,
+      username: data.username
+    }
   } catch (error) {
-    console.error('Error al obtener el perfil:', error)
+    console.error(error)
+    Swal.fire({
+      icon: 'error',
+      title: 'Error al cargar el perfil',
+      text: 'Hubo un problema al cargar los datos del perfil.'
+    })
   }
 }
 
-// Función para actualizar el perfil del usuario
-const actualizarPerfil = async () => {
-  try {
-    const response = await fetch('http://127.0.0.1:5000/currentUser', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      },
-      body: JSON.stringify(perfilEditado.value)
+const confirmarYActualizar = async () => {
+  const camposModificados = []
+
+  if (perfilEditado.value.name !== perfil.value.name) camposModificados.push(t('profile.name'))
+  if (perfilEditado.value.lastname !== perfil.value.lastname) camposModificados.push(t('profile.lastname'))
+  if (perfilEditado.value.email !== perfil.value.email) camposModificados.push(t('profile.email'))
+  if (perfilEditado.value.phone !== perfil.value.phone) camposModificados.push(t('profile.phone'))
+  if (perfilEditado.value.username !== perfil.value.username) camposModificados.push(t('profile.username'))
+
+  if (camposModificados.length === 0) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'No has modificado ningún campo',
+      text: 'Debes hacer algún cambio para continuar.'
     })
-    const data = await response.json()
-    console.log('Perfil actualizado:', data)
-    alert('Perfil actualizado correctamente')
+    return
+  }
+
+  const mensaje = t('profile.fullConfirmMessage', {
+    fields: camposModificados.join('\n- ')
+  })
+
+  const confirmado = await Swal.fire({
+    icon: 'question',
+    title: t('profile.confirmChangesTitle'),
+    text: mensaje,
+    showCancelButton: true,
+    confirmButtonText: t('profile.confirmButton'),
+    cancelButtonText: t('profile.cancelButton')
+  })
+
+  if (!confirmado.isConfirmed) return
+
+  try {
+    const token = localStorage.getItem('token')
+    const dataActualizado = await updateUserProfile(token, perfilEditado.value)
+
+    Swal.fire({
+      icon: 'success',
+      title: t('profile.updateSuccessTitle'),
+      text: t('profile.updateSuccessText')
+    })
+
+    perfil.value = {
+      ...perfil.value,
+      ...perfilEditado.value
+    }
   } catch (error) {
-    console.error('Error al actualizar perfil:', error)
+    console.error(error)
+    Swal.fire({
+      icon: 'error',
+      title: 'Error al actualizar perfil',
+      text: 'Hubo un problema al actualizar tu perfil.'
+    })
+  }
+}
+
+// Volver a la página anterior
+const goBack = () => {
+  router.back()
+}
+
+const logout = async () => {
+  const result = await Swal.fire({
+    title: t('profile.titlelogout'),
+    text: t('profile.logouttext'),
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#42b883',
+    cancelButtonColor: '#d33',
+    confirmButtonText: t('profile.confirm'),
+    cancelButtonText: t('profile.cancel'),
+  })
+
+  if (result.isConfirmed) {
+    localStorage.removeItem('token') // Elimina el token (ajusta si usas Pinia)
+    router.push('/login')
   }
 }
 </script>
 
-<template>
-  <div class="perfil-container">
-    <h2>Perfil de Usuario</h2>
-
-    <div class="acciones">
-      <button @click="verPerfil">Ver Perfil</button>
-      <button @click="actualizarPerfil">Actualizar Perfil</button>
-    </div>
-
-    <div v-if="perfil" class="perfil-datos">
-      <h3>Datos actuales:</h3>
-      <ul>
-        <li><strong>Nombre:</strong> {{ perfil.name }}</li>
-        <li><strong>Apellidos:</strong> {{ perfil.lastname }}</li>
-        <li><strong>Email:</strong> {{ perfil.email }}</li>
-        <li><strong>Teléfono:</strong> {{ perfil.phone }}</li>
-        <li><strong>Fecha:</strong> {{ perfil.date }}</li>
-        <li><strong>Username:</strong> {{ perfil.username }}</li>
-      </ul>
-    </div>
-
-    <div v-if="perfil" class="form-actualizar">
-      <h3>Editar Datos:</h3>
-      <label>
-        Nombre:
-        <input v-model="perfilEditado.name" type="text" />
-      </label>
-      <label>
-        Apellidos:
-        <input v-model="perfilEditado.lastname" type="text" />
-      </label>
-      <label>
-        Email:
-        <input v-model="perfilEditado.email" type="email" />
-      </label>
-      <label>
-        Teléfono:
-        <input v-model="perfilEditado.phone" type="text" />
-      </label>
-      <label>
-        Fecha (dd/mm/yyyy):
-        <input v-model="perfilEditado.date" type="text" />
-      </label>
-    </div>
-  </div>
-</template>
-
-<style scoped>
-.perfil-container {
-  max-width: 600px;
-  margin: auto;
-  padding: 20px;
-}
-
-.acciones {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-button {
-  padding: 10px 20px;
-  background-color: #42b883;
-  border: none;
-  border-radius: 6px;
-  color: white;
-  cursor: pointer;
-}
-
-button:hover {
-  background-color: #36936d;
-}
-
-.perfil-datos ul {
-  list-style: none;
-  padding: 0;
-}
-
-.form-actualizar {
-  margin-top: 20px;
-}
-
-.form-actualizar label {
-  display: block;
-  margin-bottom: 10px;
-}
-
-input {
-  padding: 8px;
-  width: 100%;
-  max-width: 400px;
-  margin-top: 5px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
+<style scoped lang="scss">
+@use "@/assets/perfil.scss" as *;
 </style>
